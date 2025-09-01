@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Tracker Pro - Mobile PWA</title>
+    <meta name="description" content="Professional mobile sales tracking app with secure timestamps">
+    <meta name="theme-color" content="#3B82F6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Sales Tracker">
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiU2FsZXMgVHJhY2tlciBQcm8iLCJzaG9ydF9uYW1lIjoiU2FsZXNUcmFja2VyIiwiZGVzY3JpcHRpb24iOiJQcm9mZXNzaW9uYWwgbW9iaWxlIHNhbGVzIHRyYWNraW5nIGFwcCIsInN0YXJ0X3VybCI6Ii8iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjZmZmZmZmIiwidGhlbWVfY29sb3IiOiIjM0I4MkY2IiwiaWNvbnMiOlt7InNyYyI6ImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjNhV1IwYUQwaU1USTRJaUJvWldsbmFIUTlJakV5T0NJZ2RtbGxkMEp2ZUQwaU1DQXdJREV5T0NBeU9EZ2lJSGh0Ykc1elBTSm9kSFJ3T2k4dmQzZDNMbmN6TG05eVp5OHlNREF3TDNOMlp5SStQSEpsWTNRZ2QybGtkR2c5SWpFeU9DSWdhR1ZwWjJoMFBTSXlPRGdpSUhKNFBTSXhOQ0lnWm1sc2JEMGlJek0zT0RKR05pSXZQanh5WldOMElIZzlJakl3SWlCNVBTSXlNQ0lnZDJsa2RHZzlJamc0SWlCb1pXbG5hSFE5SWpJME9DSWdjakU5SWpFMElpQm1hV3hzUFNKM2FHbDBaU0l2UGp4MFpYaDBJSGc5SWpZMElpQjVQU0kxTmlJZ1ptOXVkQzF6YVhwbFBTSXpNaUlnWm1sc2JEMGlJek0zT0RKR05pSStVMUJTVHp3dmRHVjRkRDQ4TDNOMlp6ND0iLCJzaXplcyI6IjEyOHgxMjgiLCJ0eXBlIjoiaW1hZ2Uvc3ZnK3htbCJ9XX0=">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgdmlld0JveD0iMCAwIDEyOCAyODgiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEyOCIgaGVpZ2h0PSIyODgiIHJ4PSIxNCIgZmlsbD0iIzM3ODJGNiIvPjxyZWN0IHg9IjIwIiB5PSIyMCIgd2lkdGg9Ijg4IiBoZWlnaHQ9IjI0OCIgcjE9IjE0IiBmaWxsPSJ3aGl0ZSIvPjx0ZXh0IHg9IjY0IiB5PSI1NiIgZm9udC1zaXplPSIzMiIgZmlsbD0iIzM3ODJGNiI+U1BSTzwvdGV4dD48L3N2Zz4=">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .success-flash {
+            animation: successFlash 0.5s ease-in-out;
+        }
+        @keyframes successFlash {
+            0%, 100% { background-color: rgb(34, 197, 94); }
+            50% { background-color: rgb(22, 163, 74); }
+        }
+        .protected-timestamp {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border: 3px solid #dc2626;
+            color: #991b1b;
+            font-weight: 700;
+            text-align: center;
+            cursor: not-allowed;
+            user-select: none;
+            position: relative;
+        }
+        .protected-timestamp::before {
+            content: "🔒";
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+        }
+        .live-clock {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        .mobile-optimized {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .floating-action {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 40;
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+        }
+        @media (max-width: 768px) {
+            .mobile-padding { padding: 1rem; }
+            .mobile-text { font-size: 0.875rem; }
+            .mobile-button { padding: 0.75rem 1rem; }
+        }
+        .install-prompt {
+            background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .offline-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #EF4444;
+            color: white;
+            text-align: center;
+            padding: 0.5rem;
+            z-index: 100;
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-100 to-blue-100 min-h-screen mobile-optimized">
+    <!-- Offline Indicator -->
+    <div id="offlineIndicator" class="offline-indicator">
+        📡 You're offline - Data will sync when connection returns
+    </div>
+
+    <!-- Install Prompt -->
+    <div id="installPrompt" class="install-prompt">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="font-bold">📱 Install Sales Tracker</h3>
+                <p class="text-sm opacity-90">Add to home screen for better experience</p>
+            </div>
+            <button id="installBtn" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold">
+                Install
+            </button>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-4 max-w-6xl mobile-padding">
+        <!-- Sticky Header -->
+        <div class="sticky-header rounded-2xl shadow-xl p-4 mb-6 mobile-padding">
+            <div class="flex items-center justify-between mb-3">
+                <div>
+                    <h1 class="text-2xl md:text-4xl font-bold text-gray-800 mb-1">Sales Tracker Pro</h1>
+                    <p class="text-gray-600 text-sm md:text-lg">Mobile sales management</p>
+                </div>
+                <div class="text-right">
+                    <div class="live-clock text-lg md:text-2xl font-bold text-blue-600" id="headerClock"></div>
+                    <div class="text-xs text-gray-500">Live Time</div>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2 text-xs">
+                <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">📍 GPS</span>
+                <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">💾 Offline</span>
+                <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full font-medium">🔒 Secure</span>
+                <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full font-medium">📱 PWA</span>
+            </div>
+        </div>
+
+        <!-- Mobile Stats Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6">
+            <div class="bg-white rounded-xl shadow-lg p-4">
+                <div class="text-center">
+                    <div class="text-2xl mb-2">🏪</div>
+                    <p class="text-gray-600 text-xs font-medium">Total Visits</p>
+                    <p class="text-xl md:text-3xl font-bold text-gray-800" id="totalVisits">0</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-4">
+                <div class="text-center">
+                    <div class="text-2xl mb-2">💰</div>
+                    <p class="text-gray-600 text-xs font-medium">Today's Sales</p>
+                    <p class="text-xl md:text-3xl font-bold text-gray-800" id="todaySales">$0</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-4">
+                <div class="text-center">
+                    <div class="text-2xl mb-2">📈</div>
+                    <p class="text-gray-600 text-xs font-medium">Success Rate</p>
+                    <p class="text-xl md:text-3xl font-bold text-gray-800" id="successRate">0%</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-4">
+                <div class="text-center">
+                    <div class="text-2xl mb-2">⏱️</div>
+                    <p class="text-gray-600 text-xs font-medium">This Week</p>
+                    <p class="text-xl md:text-3xl font-bold text-gray-800" id="weeklyVisits">0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile-Optimized Form -->
+        <div class="bg-white rounded-2xl shadow-xl p-4 md:p-8 mb-6">
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                📝 New Sales Visit
+            </h2>
+            
+            <form id="salesForm" class="space-y-4">
+                <!-- PROTECTED TIMESTAMP SECTION -->
+                <div class="bg-red-50 border-3 border-red-300 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm md:text-lg font-bold text-red-800 flex items-center">
+                            🔒 PROTECTED TIMESTAMPS
+                        </h3>
+                        <div class="bg-red-200 text-red-800 px-2 py-1 rounded-full text-xs font-bold">
+                            AUTO
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-red-700 mb-2">📅 VISIT DATE</label>
+                            <input 
+                                type="text" 
+                                id="visitDate" 
+                                readonly 
+                                class="protected-timestamp w-full px-8 py-3 rounded-lg text-sm"
+                                placeholder="Auto-generating..."
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-red-700 mb-2">🕐 VISIT TIME</label>
+                            <input 
+                                type="text" 
+                                id="visitTime" 
+                                readonly 
+                                class="protected-timestamp w-full px-8 py-3 rounded-lg text-sm live-clock"
+                                placeholder="Auto-generating..."
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3 p-3 bg-red-100 rounded-lg">
+                        <p class="text-red-800 text-xs font-semibold">
+                            ⚠️ System-protected fields prevent timestamp tampering
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Mobile Form Fields -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Shop/Store Name *</label>
+                        <input type="text" id="shopName" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base" placeholder="Enter shop name">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Shop Type *</label>
+                        <input type="text" id="shopType" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base" placeholder="e.g., Retail Store, Restaurant, Pharmacy, Office...">
+                        <p class="text-xs text-gray-500 mt-1">Enter any type of business - completely customizable</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Contact Phone *</label>
+                        <input type="tel" id="phoneNumber" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base" placeholder="+1 (555) 123-4567">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Sales Representative *</label>
+                        <input type="text" id="salesPerson" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base" placeholder="Your full name">
+                        <p class="text-xs text-gray-500 mt-1">Your name will be saved and auto-filled for future visits</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">GPS Location</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="currentLocation" readonly class="flex-1 px-4 py-3 bg-gray-100 border-2 border-gray-300 rounded-lg text-base" placeholder="Tap to get location...">
+                            <button type="button" id="getLocationBtn" class="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all font-semibold text-sm">
+                                📍 GPS
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Complete Address</label>
+                        <textarea id="detailedAddress" rows="3" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base" placeholder="Full address with landmarks..."></textarea>
+                    </div>
+
+                    <!-- MANUAL VISIT PURPOSE -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Visit Purpose *</label>
+                        <input type="text" id="visitPurpose" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base" placeholder="e.g., New prospect meeting, Follow-up call, Product delivery...">
+                        <p class="text-xs text-gray-500 mt-1">Enter any visit purpose - completely customizable</p>
+                    </div>
+
+                    <!-- LIVE PHOTO CAPTURE -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Visit Photos</label>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                            <!-- Camera Controls -->
+                            <div class="flex gap-2 mb-4">
+                                <button type="button" id="startCameraBtn" class="flex-1 bg-green-500 text-white py-3 px-4 rounded-lg hover:bg-green-600 transition-all font-semibold text-sm">
+                                    📷 Start Camera
+                                </button>
+                                <button type="button" id="captureBtn" class="flex-1 bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-all font-semibold text-sm" disabled>
+                                    📸 Capture
+                                </button>
+                                <button type="button" id="stopCameraBtn" class="flex-1 bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600 transition-all font-semibold text-sm" disabled>
+                                    ⏹️ Stop
+                                </button>
+                            </div>
+                            
+                            <!-- Camera Preview -->
+                            <div id="cameraContainer" class="hidden">
+                                <video id="cameraPreview" class="w-full rounded-lg shadow-lg" autoplay playsinline></video>
+                                <canvas id="photoCanvas" class="hidden"></canvas>
+                            </div>
+                            
+                            <!-- Captured Photos Display -->
+                            <div id="capturedPhotos" class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4"></div>
+                            
+                            <!-- Photo Instructions -->
+                            <div id="photoInstructions" class="text-center py-6 text-gray-500">
+                                <div class="text-4xl mb-2">📷</div>
+                                <p class="text-sm">Tap "Start Camera" to take photos during your visit</p>
+                                <p class="text-xs text-gray-400 mt-1">Photos are stored locally and included in exports</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Sale Amount ($)</label>
+                        <input type="number" id="saleAmount" min="0" step="0.01" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base" placeholder="0.00">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Visit Notes</label>
+                        <textarea id="visitNotes" rows="4" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base" placeholder="Customer feedback, next steps, observations..."></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-8 rounded-xl font-bold text-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 transform active:scale-95 shadow-lg">
+                    💾 SAVE VISIT RECORD
+                </button>
+            </form>
+        </div>
+
+        <!-- Mobile Search & Export -->
+        <div class="bg-white rounded-2xl shadow-xl p-4 mb-6">
+            <div class="space-y-3">
+                <input type="text" id="searchInput" placeholder="🔍 Search records..." class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-base">
+                <div class="flex gap-2">
+                    <button id="exportCsvBtn" class="flex-1 px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all font-semibold text-sm">
+                        📄 CSV
+                    </button>
+                    <button id="exportExcelBtn" class="flex-1 px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all font-semibold text-sm">
+                        📊 Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Records Display -->
+        <div class="bg-white rounded-2xl shadow-xl p-4">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-800">📋 Records</h2>
+                <span class="text-sm text-gray-500" id="recordCount">0 records</span>
+            </div>
+            <div id="salesRecords" class="space-y-3">
+                <div class="text-center py-8 text-gray-500">
+                    <div class="text-4xl mb-3">📝</div>
+                    <h3 class="text-lg font-semibold mb-2">No Records Yet</h3>
+                    <p class="text-sm">Add your first sales visit!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button id="scrollToTop" class="floating-action bg-blue-500 text-white p-4 rounded-full hover:bg-blue-600 transition-all transform active:scale-95" style="display: none;">
+        ⬆️
+    </button>
+
+    <script>
+        class SalesTrackerPWA {
+            constructor() {
+                this.records = JSON.parse(localStorage.getItem('salesRecords')) || [];
+                this.deferredPrompt = null;
+                this.currentStream = null;
+                this.capturedPhotos = [];
+                this.init();
+            }
+
+            init() {
+                this.registerServiceWorker();
+                this.setupPWAInstall();
+                this.bindEvents();
+                this.renderRecords();
+                this.updateStats();
+                this.updateDateTime();
+                this.startClockUpdater();
+                this.setupOfflineDetection();
+                this.setupScrollToTop();
+                this.getCurrentLocation();
+                this.loadSavedSalesPersonName();
+            }
+
+            registerServiceWorker() {
+                if ('serviceWorker' in navigator) {
+                    const swCode = `
+                        const CACHE_NAME = 'sales-tracker-v1';
+                        const urlsToCache = ['/'];
+                        
+                        self.addEventListener('install', event => {
+                            event.waitUntil(
+                                caches.open(CACHE_NAME)
+                                    .then(cache => cache.addAll(urlsToCache))
+                            );
+                        });
+                        
+                        self.addEventListener('fetch', event => {
+                            event.respondWith(
+                                caches.match(event.request)
+                                    .then(response => response || fetch(event.request))
+                            );
+                        });
+                    `;
+                    
+                    const blob = new Blob([swCode], { type: 'application/javascript' });
+                    const swUrl = URL.createObjectURL(blob);
+                    
+                    navigator.serviceWorker.register(swUrl)
+                        .then(() => console.log('SW registered'))
+                        .catch(() => console.log('SW registration failed'));
+                }
+            }
+
+            setupPWAInstall() {
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    this.deferredPrompt = e;
+                    document.getElementById('installPrompt').style.display = 'block';
+                });
+
+                document.getElementById('installBtn').addEventListener('click', () => {
+                    if (this.deferredPrompt) {
+                        this.deferredPrompt.prompt();
+                        this.deferredPrompt.userChoice.then(() => {
+                            document.getElementById('installPrompt').style.display = 'none';
+                            this.deferredPrompt = null;
+                        });
+                    }
+                });
+            }
+
+            setupOfflineDetection() {
+                const updateOnlineStatus = () => {
+                    const indicator = document.getElementById('offlineIndicator');
+                    if (navigator.onLine) {
+                        indicator.style.display = 'none';
+                    } else {
+                        indicator.style.display = 'block';
+                    }
+                };
+
+                window.addEventListener('online', updateOnlineStatus);
+                window.addEventListener('offline', updateOnlineStatus);
+                updateOnlineStatus();
+            }
+
+            setupScrollToTop() {
+                const scrollBtn = document.getElementById('scrollToTop');
+                
+                window.addEventListener('scroll', () => {
+                    if (window.pageYOffset > 300) {
+                        scrollBtn.style.display = 'block';
+                    } else {
+                        scrollBtn.style.display = 'none';
+                    }
+                });
+
+                scrollBtn.addEventListener('click', () => {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+            }
+
+            bindEvents() {
+                document.getElementById('salesForm').addEventListener('submit', (e) => this.handleSubmit(e));
+                document.getElementById('getLocationBtn').addEventListener('click', () => this.getCurrentLocation());
+                document.getElementById('searchInput').addEventListener('input', (e) => this.handleSearch(e));
+                document.getElementById('exportCsvBtn').addEventListener('click', () => this.exportCSV());
+                document.getElementById('exportExcelBtn').addEventListener('click', () => this.exportExcel());
+                
+                // Camera events
+                document.getElementById('startCameraBtn').addEventListener('click', () => this.startCamera());
+                document.getElementById('captureBtn').addEventListener('click', () => this.capturePhoto());
+                document.getElementById('stopCameraBtn').addEventListener('click', () => this.stopCamera());
+                
+                // Save sales person name when it changes
+                document.getElementById('salesPerson').addEventListener('blur', () => this.saveSalesPersonName());
+            }
+
+            updateDateTime() {
+                const now = new Date();
+                const dateOptions = { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                };
+                const timeOptions = { 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit',
+                    hour12: true 
+                };
+                
+                const formattedDate = now.toLocaleDateString('en-US', dateOptions);
+                const formattedTime = now.toLocaleTimeString('en-US', timeOptions);
+                
+                document.getElementById('visitDate').value = formattedDate;
+                document.getElementById('visitTime').value = formattedTime;
+                document.getElementById('headerClock').textContent = formattedTime;
+            }
+
+            startClockUpdater() {
+                setInterval(() => {
+                    this.updateDateTime();
+                }, 1000);
+            }
+
+            getCurrentLocation() {
+                const locationInput = document.getElementById('currentLocation');
+                const btn = document.getElementById('getLocationBtn');
+                
+                btn.textContent = '🔄';
+                btn.disabled = true;
+
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude.toFixed(6);
+                            const lng = position.coords.longitude.toFixed(6);
+                            const accuracy = position.coords.accuracy.toFixed(0);
+                            locationInput.value = `${lat}, ${lng} (±${accuracy}m)`;
+                            btn.textContent = '✅';
+                            setTimeout(() => {
+                                btn.textContent = '📍 GPS';
+                                btn.disabled = false;
+                            }, 2000);
+                        },
+                        (error) => {
+                            locationInput.value = 'GPS unavailable';
+                            btn.textContent = '❌';
+                            setTimeout(() => {
+                                btn.textContent = '📍 GPS';
+                                btn.disabled = false;
+                            }, 2000);
+                        },
+                        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+                    );
+                } else {
+                    locationInput.value = 'GPS not supported';
+                    btn.textContent = '❌';
+                    btn.disabled = false;
+                }
+            }
+
+            async startCamera() {
+                try {
+                    const constraints = {
+                        video: {
+                            facingMode: 'environment', // Use back camera on mobile
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    };
+
+                    this.currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    const video = document.getElementById('cameraPreview');
+                    video.srcObject = this.currentStream;
+                    
+                    document.getElementById('cameraContainer').classList.remove('hidden');
+                    document.getElementById('photoInstructions').classList.add('hidden');
+                    
+                    document.getElementById('startCameraBtn').disabled = true;
+                    document.getElementById('captureBtn').disabled = false;
+                    document.getElementById('stopCameraBtn').disabled = false;
+                    
+                    this.vibrate();
+                } catch (error) {
+                    alert('Camera access denied or not available. Please check permissions.');
+                    console.error('Camera error:', error);
+                }
+            }
+
+            capturePhoto() {
+                const video = document.getElementById('cameraPreview');
+                const canvas = document.getElementById('photoCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                ctx.drawImage(video, 0, 0);
+                
+                const photoData = canvas.toDataURL('image/jpeg', 0.8);
+                const timestamp = new Date().toLocaleString();
+                
+                const photo = {
+                    id: Date.now(),
+                    data: photoData,
+                    timestamp: timestamp
+                };
+                
+                this.capturedPhotos.push(photo);
+                this.displayCapturedPhotos();
+                this.vibrate();
+                
+                // Flash effect
+                const flashDiv = document.createElement('div');
+                flashDiv.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: white;
+                    z-index: 9999;
+                    opacity: 0.8;
+                    pointer-events: none;
+                `;
+                document.body.appendChild(flashDiv);
+                
+                setTimeout(() => {
+                    document.body.removeChild(flashDiv);
+                }, 100);
+            }
+
+            stopCamera() {
+                if (this.currentStream) {
+                    this.currentStream.getTracks().forEach(track => track.stop());
+                    this.currentStream = null;
+                }
+                
+                document.getElementById('cameraContainer').classList.add('hidden');
+                if (this.capturedPhotos.length === 0) {
+                    document.getElementById('photoInstructions').classList.remove('hidden');
+                }
+                
+                document.getElementById('startCameraBtn').disabled = false;
+                document.getElementById('captureBtn').disabled = true;
+                document.getElementById('stopCameraBtn').disabled = true;
+            }
+
+            displayCapturedPhotos() {
+                const container = document.getElementById('capturedPhotos');
+                container.innerHTML = this.capturedPhotos.map(photo => `
+                    <div class="relative group">
+                        <img src="${photo.data}" class="w-full h-24 object-cover rounded-lg shadow-md">
+                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                            <button onclick="salesTracker.deletePhoto(${photo.id})" class="text-white bg-red-500 p-2 rounded-full hover:bg-red-600 transition-all">
+                                🗑️
+                            </button>
+                        </div>
+                        <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 rounded-b-lg">
+                            ${photo.timestamp}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            deletePhoto(photoId) {
+                this.capturedPhotos = this.capturedPhotos.filter(p => p.id !== photoId);
+                this.displayCapturedPhotos();
+                
+                if (this.capturedPhotos.length === 0 && !this.currentStream) {
+                    document.getElementById('photoInstructions').classList.remove('hidden');
+                }
+            }
+
+            handleSubmit(e) {
+                e.preventDefault();
+                
+                const now = new Date();
+                const formData = {
+                    id: Date.now(),
+                    shopName: document.getElementById('shopName').value,
+                    shopType: document.getElementById('shopType').value,
+                    phoneNumber: document.getElementById('phoneNumber').value,
+                    salesPerson: document.getElementById('salesPerson').value,
+                    currentLocation: document.getElementById('currentLocation').value,
+                    detailedAddress: document.getElementById('detailedAddress').value,
+                    visitPurpose: document.getElementById('visitPurpose').value, // Manual field
+                    saleAmount: parseFloat(document.getElementById('saleAmount').value) || 0,
+                    visitNotes: document.getElementById('visitNotes').value,
+                    photos: [...this.capturedPhotos], // Include captured photos
+                    timestamp: now.toISOString(),
+                    protectedDate: document.getElementById('visitDate').value,
+                    protectedTime: document.getElementById('visitTime').value,
+                    systemTimestamp: now.getTime()
+                };
+
+                this.records.unshift(formData);
+                this.saveToStorage();
+                this.renderRecords();
+                this.updateStats();
+                this.resetForm();
+                this.showSuccessMessage();
+                this.vibrate();
+            }
+
+            vibrate() {
+                if ('vibrate' in navigator) {
+                    navigator.vibrate([100, 50, 100]);
+                }
+            }
+
+            saveToStorage() {
+                localStorage.setItem('salesRecords', JSON.stringify(this.records));
+            }
+
+            resetForm() {
+                document.getElementById('salesForm').reset();
+                document.getElementById('currentLocation').value = '';
+                this.capturedPhotos = [];
+                document.getElementById('capturedPhotos').innerHTML = '';
+                document.getElementById('photoInstructions').classList.remove('hidden');
+                this.stopCamera();
+                // Keep the saved sales person name
+                this.loadSavedSalesPersonName();
+            }
+
+            loadSavedSalesPersonName() {
+                const savedName = localStorage.getItem('salesPersonName');
+                if (savedName) {
+                    document.getElementById('salesPerson').value = savedName;
+                }
+            }
+
+            saveSalesPersonName() {
+                const name = document.getElementById('salesPerson').value.trim();
+                if (name) {
+                    localStorage.setItem('salesPersonName', name);
+                }
+            }
+
+            showSuccessMessage() {
+                const btn = document.querySelector('button[type="submit"]');
+                const originalText = btn.textContent;
+                btn.classList.add('success-flash');
+                btn.textContent = '✅ SAVED!';
+                
+                setTimeout(() => {
+                    btn.classList.remove('success-flash');
+                    btn.textContent = originalText;
+                }, 2000);
+            }
+
+            renderRecords(recordsToRender = this.records) {
+                const container = document.getElementById('salesRecords');
+                const recordCount = document.getElementById('recordCount');
+                
+                recordCount.textContent = `${recordsToRender.length} record${recordsToRender.length !== 1 ? 's' : ''}`;
+                
+                if (recordsToRender.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <div class="text-4xl mb-3">🔍</div>
+                            <h3 class="text-lg font-semibold mb-2">No Records Found</h3>
+                            <p class="text-sm">Try adjusting your search.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = recordsToRender.map(record => `
+                    <div class="border-2 border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all duration-200 fade-in">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-blue-100 p-2 rounded-full">
+                                    <span class="text-blue-600 text-lg">🏪</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-gray-800">${record.shopName}</h3>
+                                    <p class="text-sm text-gray-600">${record.shopType}</p>
+                                    <p class="text-sm text-gray-600">📞 ${record.phoneNumber}</p>
+                                    <p class="text-sm text-gray-600">👤 ${record.salesPerson}</p>
+                                </div>
+                            </div>
+                            ${record.saleAmount > 0 ? `<span class="text-green-600 font-bold">$${record.saleAmount.toFixed(2)}</span>` : '<span class="text-gray-400 text-sm">No Sale</span>'}
+                        </div>
+                        
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                            <h4 class="text-red-800 font-bold text-xs mb-1">🔒 PROTECTED TIMESTAMPS</h4>
+                            <div class="text-xs text-red-700">
+                                <div>📅 ${record.protectedDate}</div>
+                                <div>🕐 ${record.protectedTime}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 text-sm">
+                            <div class="bg-blue-50 p-2 rounded">
+                                <strong>Purpose:</strong> ${record.visitPurpose}
+                            </div>
+                            ${record.currentLocation ? `<p class="text-gray-600"><strong>📍 GPS:</strong> ${record.currentLocation}</p>` : ''}
+                            ${record.detailedAddress ? `<p class="text-gray-600"><strong>🏠 Address:</strong> ${record.detailedAddress}</p>` : ''}
+                            ${record.visitNotes ? `<p class="text-gray-600"><strong>📝 Notes:</strong> ${record.visitNotes}</p>` : ''}
+                            ${record.photos && record.photos.length > 0 ? `
+                                <div class="mt-3">
+                                    <strong class="text-gray-700">📷 Visit Photos (${record.photos.length}):</strong>
+                                    <div class="grid grid-cols-3 gap-2 mt-2">
+                                        ${record.photos.map(photo => `
+                                            <div class="relative">
+                                                <img src="${photo.data}" class="w-full h-16 object-cover rounded cursor-pointer" onclick="salesTracker.viewFullPhoto('${photo.data}', '${photo.timestamp}')">
+                                                <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-1 text-center">
+                                                    ${photo.timestamp.split(' ')[1]}
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="mt-3 flex gap-3 pt-3 border-t border-gray-200">
+                            <button onclick="salesTracker.editRecord(${record.id})" class="text-blue-600 hover:text-blue-800 font-semibold text-sm">✏️ Edit</button>
+                            <button onclick="salesTracker.deleteRecord(${record.id})" class="text-red-600 hover:text-red-800 font-semibold text-sm">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateStats() {
+                const totalVisits = this.records.length;
+                const today = new Date().toDateString();
+                const todayRecords = this.records.filter(r => new Date(r.timestamp).toDateString() === today);
+                const todaySales = todayRecords.reduce((sum, r) => sum + r.saleAmount, 0);
+                
+                const weekStart = new Date();
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                const weeklyRecords = this.records.filter(r => new Date(r.timestamp) >= weekStart);
+                
+                const successfulSales = this.records.filter(r => r.saleAmount > 0).length;
+                const successRate = totalVisits > 0 ? Math.round((successfulSales / totalVisits) * 100) : 0;
+
+                document.getElementById('totalVisits').textContent = totalVisits;
+                document.getElementById('todaySales').textContent = `$${todaySales.toFixed(2)}`;
+                document.getElementById('successRate').textContent = `${successRate}%`;
+                document.getElementById('weeklyVisits').textContent = weeklyRecords.length;
+            }
+
+            handleSearch(e) {
+                const query = e.target.value.toLowerCase();
+                const filtered = this.records.filter(record => 
+                    record.shopName.toLowerCase().includes(query) ||
+                    record.shopType.toLowerCase().includes(query) ||
+                    record.phoneNumber.includes(query) ||
+                    record.salesPerson.toLowerCase().includes(query) ||
+                    record.visitPurpose.toLowerCase().includes(query) ||
+                    (record.visitNotes && record.visitNotes.toLowerCase().includes(query))
+                );
+                this.renderRecords(filtered);
+            }
+
+            viewFullPhoto(photoData, timestamp) {
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4';
+                modal.innerHTML = `
+                    <div class="relative max-w-full max-h-full">
+                        <img src="${photoData}" class="max-w-full max-h-full object-contain rounded-lg">
+                        <div class="absolute top-4 right-4">
+                            <button onclick="this.parentElement.parentElement.parentElement.remove()" class="bg-red-500 text-white p-3 rounded-full hover:bg-red-600 transition-all">
+                                ✕
+                            </button>
+                        </div>
+                        <div class="absolute bottom-4 left-4 right-4 bg-black bg-opacity-70 text-white p-3 rounded-lg text-center">
+                            📅 ${timestamp}
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+            }
+
+            editRecord(id) {
+                const record = this.records.find(r => r.id === id);
+                if (record) {
+                    document.getElementById('shopName').value = record.shopName;
+                    document.getElementById('shopType').value = record.shopType;
+                    document.getElementById('phoneNumber').value = record.phoneNumber;
+                    document.getElementById('salesPerson').value = record.salesPerson;
+                    document.getElementById('currentLocation').value = record.currentLocation;
+                    document.getElementById('detailedAddress').value = record.detailedAddress;
+                    document.getElementById('visitPurpose').value = record.visitPurpose;
+                    document.getElementById('saleAmount').value = record.saleAmount;
+                    document.getElementById('visitNotes').value = record.visitNotes;
+                    
+                    // Load photos for editing
+                    if (record.photos && record.photos.length > 0) {
+                        this.capturedPhotos = [...record.photos];
+                        this.displayCapturedPhotos();
+                        document.getElementById('photoInstructions').classList.add('hidden');
+                    }
+                    
+                    this.deleteRecord(id, false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }
+
+            deleteRecord(id, confirm = true) {
+                if (!confirm || window.confirm('Delete this record?')) {
+                    this.records = this.records.filter(r => r.id !== id);
+                    this.saveToStorage();
+                    this.renderRecords();
+                    this.updateStats();
+                    this.vibrate();
+                }
+            }
+
+            exportCSV() {
+                const csvContent = this.generateCSV();
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Sales_Records_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                this.showExportSuccess('CSV');
+            }
+
+            exportExcel() {
+                const wb = XLSX.utils.book_new();
+                
+                const excelData = this.records.map((record, index) => ({
+                    'Record #': index + 1,
+                    'Shop Name': record.shopName,
+                    'Shop Type': record.shopType,
+                    'Phone': record.phoneNumber,
+                    'Sales Person': record.salesPerson,
+                    'Protected Date': record.protectedDate,
+                    'Protected Time': record.protectedTime,
+                    'Visit Purpose': record.visitPurpose,
+                    'Sale Amount': record.saleAmount,
+                    'GPS Location': record.currentLocation || 'Not Available',
+                    'Address': record.detailedAddress || 'Not Provided',
+                    'Notes': record.visitNotes || 'No Notes',
+                    'Photos Count': record.photos ? record.photos.length : 0,
+                    'System Timestamp': new Date(record.timestamp).toLocaleString()
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(excelData);
+                ws['!cols'] = Array(12).fill({ wch: 15 });
+
+                XLSX.utils.book_append_sheet(wb, ws, 'Sales Records');
+                
+                const filename = `Sales_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+                XLSX.writeFile(wb, filename);
+                this.showExportSuccess('Excel');
+            }
+
+            showExportSuccess(type) {
+                const btn = type === 'Excel' ? document.getElementById('exportExcelBtn') : document.getElementById('exportCsvBtn');
+                const originalText = btn.textContent;
+                btn.classList.add('success-flash');
+                btn.textContent = `✅ ${type}!`;
+                
+                setTimeout(() => {
+                    btn.classList.remove('success-flash');
+                    btn.textContent = originalText;
+                }, 2000);
+            }
+
+            generateCSV() {
+                const headers = ['Record#', 'Shop Name', 'Shop Type', 'Phone', 'Sales Person', 'Protected Date', 'Protected Time', 'Visit Purpose', 'Sale Amount', 'GPS Location', 'Address', 'Notes', 'Photos Count', 'System Timestamp'];
+                const rows = this.records.map((r, index) => [
+                    index + 1, r.shopName, r.shopType, r.phoneNumber, r.salesPerson, 
+                    r.protectedDate, r.protectedTime, r.visitPurpose, 
+                    r.saleAmount, r.currentLocation || 'Not Available', 
+                    r.detailedAddress || 'Not Provided', r.visitNotes || 'No Notes',
+                    r.photos ? r.photos.length : 0,
+                    new Date(r.timestamp).toLocaleString()
+                ]);
+                
+                return [headers, ...rows].map(row => 
+                    row.map(field => `"${String(field || '').replace(/"/g, '""')}"`).join(',')
+                ).join('\n');
+            }
+        }
+
+        // Initialize the PWA
+        const salesTracker = new SalesTrackerPWA();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'978288760117a75f',t:'MTc1NjcwNjI3Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
